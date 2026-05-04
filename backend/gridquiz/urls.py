@@ -14,12 +14,18 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import os
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import path, include
-from django.views.generic import TemplateView
+
+def frontend(request):
+    html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates', 'index.html')
+    with open(html_path, encoding='utf-8') as f:
+        return HttpResponse(f.read(), content_type='text/html; charset=utf-8')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 	path('api/', include('gridquiz.quickstart.urls')),
-    path('', TemplateView.as_view(template_name='index.html')),
+    path('', frontend),
 ]
