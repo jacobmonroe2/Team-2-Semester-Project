@@ -60,7 +60,7 @@ ROOT_URLCONF = 'gridquiz.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR.parent / 'public'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

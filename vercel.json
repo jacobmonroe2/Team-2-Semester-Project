@@ -1,20 +1,13 @@
 {
   "version": 2,
-  "buildCommand": "pip install -r backend/requirements.txt && cd backend && python manage.py migrate --noinput && python manage.py loaddata questions",
   "builds": [
     {
-      "src": "backend/gridquiz/wsgi.py",
+      "src": "api/index.py",
       "use": "@vercel/python",
       "config": { "maxLambdaSize": "15mb" }
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "backend/gridquiz/wsgi.py" },
-    { "src": "/admin/(.*)", "dest": "backend/gridquiz/wsgi.py" },
-    { "src": "/(.*)", "dest": "public/$1" }
+    { "src": "/(.*)", "dest": "api/index.py" }
   ]
 }
