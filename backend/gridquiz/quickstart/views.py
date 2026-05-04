@@ -1,6 +1,6 @@
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 
-from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -10,56 +10,88 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from django.contrib.staticfiles import finders
-
-# import models and serializers
-from .models import Gameboard, Leaderboard, LeaderboardEntry, Question, User
-
+from .models import Gameboard, Leaderboard, LeaderboardEntry, Question
 from .serializers import (
-	UserSerializer, 
-	LeaderboardEntrySerializer, 
-	LeaderboardSerializer, 
-	QuestionSerializer, 
-	GameboardSerializer,	
+	GameboardSerializer,
+	LeaderboardEntrySerializer,
+	LeaderboardSerializer,
+	QuestionSerializer,
 )
+from .randomBoard import createNewBoard
 
 User = get_user_model()
 
-# import other scripts
-from .randomBoard import *
 
+# ── Answer validation helpers ──────────────────────────────────────────────
+
+def _levenshtein(a, b):
+	if a == b: return 0
+	if not a: return len(b)
+	if not b: return len(a)
+	prev = list(range(len(a) + 1))
+	for i, cb in enumerate(b, 1):
+		curr = [i]
+		for j, ca in enumerate(a, 1):
+			curr.append(min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + (0 if ca == cb else 1)))
+		prev = curr
+	return prev[len(a)]
+
+
+def _normalize(s):
+	s = s.lower()
+	s = re.sub(r"[^a-z0-9\s]", " ", s)
+	s = re.sub(r"\b(the|a|an|who is|what is|whats|whos)\b", " ", s)
+	return re.sub(r"\s+", " ", s).strip()
+
+
+def validate_answer(user_answer, correct_answer):
+	u = _normalize(user_answer)
+	c = _normalize(correct_answer)
+	if not u or len(u) < 2:
+		return {"correct": False, "reason": "Answer too short"}
+	if u == c:
+		return {"correct": True, "reason": "Exact match"}
+	if c in u and len(u) >= max(len(c) * 0.5, 6):
+		return {"correct": True, "reason": "Recognized the key term"}
+	if u in c:
+		return {"correct": True, "reason": "Recognized the key term"}
+	dist = _levenshtein(u, c)
+	tolerance = max(2, int(len(c) * 0.2))
+	if dist <= tolerance:
+		return {"correct": True, "reason": "Close enough — minor typo"}
+	c_words = [w for w in c.split() if len(w) > 2]
+	u_words = [w for w in u.split() if len(w) > 2]
+	if c_words and u_words:
+		matched = [
+			cw for cw in c_words
+			if any(_levenshtein(cw, uw) <= max(1, int(len(cw) * 0.25)) for uw in u_words)
+		]
+		if len(matched) == len(c_words):
+			return {"correct": True, "reason": "All key terms present"}
+	return {"correct": False, "reason": "Not a close enough match"}
+
+
+# ── Views ──────────────────────────────────────────────────────────────────
 
 class CreateGameboardView(APIView):
-	"""
-	GET /game/
-	Creates and stores a game with
-		-a grid of random questions sorted by the categories
-		-leaderboard
-		-board_code
-	"""
+	"""GET /api/game/ — create a new board with randomised questions."""
 	permission_classes = [AllowAny]
 
 	def get(self, request):
 		try:
 			with transaction.atomic():
-
 				questions = Question.objects.all()
-				board = createNewBoard(questions)
+				board_questions = createNewBoard(questions)
 
-				game_name = f"Gameboard:{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-				# create gameboard
 				new_gameboard = Gameboard.objects.create(
-					name=game_name,
-					date_created=datetime.now()
+					name=f"Gameboard:{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+					date_created=datetime.now(),
 				)
-				# link all of the questions to the board
-				for question in board:
+				for question in board_questions:
 					question.gameboards.add(new_gameboard)
-				# create leaderboard
-				leaderboard = Leaderboard.objects.create(
-					gameboard=new_gameboard 
-				)
-	
+
+				Leaderboard.objects.create(gameboard=new_gameboard)
+
 				return Response(
 					GameboardSerializer(new_gameboard).data,
 					status=status.HTTP_201_CREATED,
@@ -70,103 +102,79 @@ class CreateGameboardView(APIView):
 				status=status.HTTP_500_INTERNAL_SERVER_ERROR,
 			)
 
-class HistoryView(APIView):
-	"""
-	GET /history/
-	Gets the all of the games that the current user has played (leaderboard entries) sorted by date
-	"""
+
+class GameboardByIdView(APIView):
+	"""GET /api/game/<board_code>"""
 	permission_classes = [AllowAny]
 
-	def get(self, request):
-
-		serializer = UserSerializer(
-			data = {**request.data, "user_id" : str(
-
-		user = None
-		if request.user and request.user.is_authenticated:
-			user = request.user
-		else:
-			user_id = UserSerializer.validated_data.pop("user_id")
-			user = get_object_or_404(User, id=user_id)
-		entries = LeaderboardEntry.objects.get(user=user)
-		
-		return Response(
-			LeaderboardEntrySerializer(entries).data,
-			status=status.HTTP_200_OK
-		)
-
-"""
-class GameboardByIdView(APIView):
-"""
-#	GET /game/{id}
-"""
 	def get(self, request, board_code):
-		gameboard = get_object_or_404(Gameboard, board_code=id)
-		return Response(
-			GameboardSerializer(gameboard).data,
-			status=status.HTTP_200_OK
-		)
-"""		
+		gameboard = get_object_or_404(Gameboard, board_code=board_code)
+		return Response(GameboardSerializer(gameboard).data)
 
-
-class GameboardByIdView(APIView):
-	"""
-	GET /game/{board_code}
-	"""
-	def get(self, request, board_code):
-		gameboard = Gameboard.objects.get(board_code=board_code)
-		return Response(
-			GameboardSerializer(gameboard).data,
-			status=status.HTTP_200_OK
-		)
 
 class LeaderboardView(APIView):
 	"""
-	GET /game/{board_code}/leaderboard
-	POST /game/{board_code}/leaderboard
+	GET  /api/games/<board_code>/leaderboard/
+	POST /api/games/<board_code>/leaderboard/
 	"""
+	permission_classes = [AllowAny]
+
 	def get(self, request, board_code):
 		gameboard = get_object_or_404(Gameboard, board_code=board_code)
 		leaderboard = getattr(gameboard, "leaderboard", None)
-
 		if leaderboard is None:
-			leaderboard = Leaderboard.objects.create(
-				gameboard=gameboard
-			)
-		
+			leaderboard = Leaderboard.objects.create(gameboard=gameboard)
 		return Response(LeaderboardSerializer(leaderboard).data)
 
 	def post(self, request, board_code):
 		gameboard = get_object_or_404(Gameboard, board_code=board_code)
 		leaderboard = getattr(gameboard, "leaderboard", None)
-
 		if leaderboard is None:
-			leaderboard = Leaderboard.objects.create(
-				gameboard=gameboard
-			)
-		
-		serializer = LeaderboardEntrySerializer(
-			data={**request.data, "leaderboard": str(leaderboard.id)},
-			context={"request": request},
-		)
-		serializer.is_valid(raise_exception=True)
+			leaderboard = Leaderboard.objects.create(gameboard=gameboard)
 
-		# find user
-		if request.user and request.user.is_authenticated:
-			user = request.user
-		else:
-			user_id = serializer.validated_data.pop("user_id")
-			user = get_object_or_404(User, id=user_id)
+		username = request.data.get("username", "anonymous")
+		user, _ = User.objects.get_or_create(username=username)
 
 		entry = LeaderboardEntry.objects.create(
 			leaderboard=leaderboard,
 			user=user,
-			score=serializer.validated_data.get("score", 0),
-			total_time_seconds=serializer.validated_data.get("total_time_seconds", 0),
+			score=request.data.get("score", 0),
+			time_seconds=request.data.get("time_seconds", 0),
+			correct_count=request.data.get("correct_count", 0),
+			hints_used=request.data.get("hints_used", 0),
+			submitted_at=datetime.now(tz=timezone.utc),
 		)
-
 		return Response(
 			LeaderboardEntrySerializer(entry).data,
 			status=status.HTTP_201_CREATED,
 		)
 
+
+class ValidateAnswerView(APIView):
+	"""POST /api/validate/ — server-side fuzzy answer checking."""
+	permission_classes = [AllowAny]
+
+	def post(self, request):
+		question_id = request.data.get("question_id")
+		user_answer = request.data.get("user_answer", "")
+
+		if not question_id:
+			return Response({"detail": "question_id required"}, status=status.HTTP_400_BAD_REQUEST)
+
+		question = get_object_or_404(Question, id=question_id)
+		result = validate_answer(user_answer, question.answer_text)
+		return Response(result)
+
+
+class HistoryView(APIView):
+	"""GET /api/history/?username=<username>"""
+	permission_classes = [AllowAny]
+
+	def get(self, request):
+		username = request.query_params.get("username")
+		if not username:
+			return Response({"detail": "username query param required"}, status=status.HTTP_400_BAD_REQUEST)
+
+		user = get_object_or_404(User, username=username)
+		entries = LeaderboardEntry.objects.filter(user=user).order_by("-submitted_at")
+		return Response(LeaderboardEntrySerializer(entries, many=True).data)
