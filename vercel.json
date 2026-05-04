@@ -8,13 +8,13 @@
       "config": { "maxLambdaSize": "15mb" }
     },
     {
-      "src": "jeopardy2.html",
+      "src": "public/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "backend/gridquiz/wsgi.py" },
     { "src": "/admin/(.*)", "dest": "backend/gridquiz/wsgi.py" },
-    { "src": "/", "dest": "jeopardy2.html" }
+    { "src": "/(.*)", "dest": "public/$1" }
   ]
 }

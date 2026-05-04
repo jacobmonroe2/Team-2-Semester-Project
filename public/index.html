@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grid Quiz — Howard Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='16' height='16' x='0' y='0' fill='%23f4c75c'/%3E%3Crect width='16' height='16' x='16' y='0' fill='%23f5efe1'/%3E%3Crect width='16' height='16' x='0' y='16' fill='%23f5efe1'/%3E%3Crect width='16' height='16' x='16' y='16' fill='%23c8102e'/%3E%3C/svg%3E">
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+:root {
+  --ink: #0a1128;
+  --ink2: #111a3d;
+  --jeopardy: #0d12b1;
+  --jeopardy-deep: #030788;
+  --gold: #bd1111;
+  --gold-deep: #930a13;
+  --cream: #f5efe1;
+  --paper: #faf7ef;
+  --crimson: #c8102e;
+  --emerald: #2d8659;
+  --slate: #6b7693;
+  --slate2: #8a93ad;
+  --line: rgba(10, 17, 40, 0.12);
+  --line-strong: rgba(10, 17, 40, 0.32);
+  --display: 'Fraunces', Georgia, serif;
+  --sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; background: var(--paper); font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: antialiased; overflow: hidden; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input { font-family: inherit; }
+#root { width: 100vw; height: 100vh; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.screen { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; }
+
+.boot { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; font-family: var(--display); }
+.boot-spinner { width: 24px; height: 24px; border: 2px solid var(--line); border-top-color: var(--jeopardy); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* LOGIN */
+.login { display: flex; height: 100%; }
+.login-left { flex: 1.1; background: var(--ink); color: var(--cream); padding: 48px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+.login-left::before { content: ''; position: absolute; top: -60px; right: -60px; width: 240px; height: 240px; border-radius: 50%; background: repeating-linear-gradient(45deg, transparent 0, transparent 10px, rgba(244,199,92,0.08) 10px, rgba(244,199,92,0.08) 11px); }
+.login-brand { font-family: var(--display); font-size: 16px; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
+.login-headline { font-family: var(--display); font-weight: 300; font-size: clamp(40px, 5vw, 64px); line-height: 0.95; letter-spacing: -0.02em; position: relative; z-index: 1; }
+.login-headline em { color: var(--gold); font-style: italic; }
+.login-subhead { margin-top: 24px; font-size: 14px; color: var(--slate2); max-width: 340px; line-height: 1.5; }
+.login-footer { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; color: var(--slate2); text-transform: uppercase; }
+.login-right { flex: 1; padding: 48px; max-width: 460px; display: flex; flex-direction: column; justify-content: center; }
+.login-title { font-family: var(--display); font-size: 28px; font-weight: 500; letter-spacing: -0.01em; }
+.login-sub { font-size: 14px; color: var(--slate); margin-top: 8px; margin-bottom: 32px; line-height: 1.5; }
+.gbutton { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-radius: 4px; background: white; border: 1px solid var(--line-strong); font-size: 14px; font-weight: 500; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: box-shadow 0.15s; }
+.gbutton:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.glogo { width: 18px; height: 18px; background: conic-gradient(from 0deg at 50% 50%, #ea4335 0deg 90deg, #fbbc05 90deg 180deg, #34a853 180deg 270deg, #4285f4 270deg 360deg); border-radius: 50%; position: relative; }
+.glogo::after { content: ''; position: absolute; inset: 4px; background: white; border-radius: 50%; }
+.divider { display: flex; align-items: center; gap: 12px; margin: 24px 0; font-size: 10px; color: var(--slate); letter-spacing: 0.15em; text-transform: uppercase; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.code-input { border: 1px dashed var(--line-strong); padding: 14px 16px; border-radius: 4px; font-family: var(--mono); font-size: 13px; letter-spacing: 0.1em; outline: none; width: 100%; background: transparent; }
+.code-input::placeholder { color: var(--slate); }
+.legal { margin-top: 24px; font-size: 11px; color: var(--slate); line-height: 1.5; }
+.legal a { color: var(--jeopardy); text-decoration: underline; }
+
+/* TOPBAR */
+.topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 28px; background: var(--paper); border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 600; font-size: 18px; }
+.brand-mark { width: 20px; height: 20px; display: grid; grid-template: repeat(2, 1fr) / repeat(2, 1fr); gap: 1px; }
+.brand-mark > div:nth-child(1) { background: var(--gold); }
+.brand-mark > div:nth-child(2) { background: var(--cream); }
+.brand-mark > div:nth-child(3) { background: var(--cream); }
+.brand-mark > div:nth-child(4) { background: var(--crimson); }
+.topbar-right { display: flex; align-items: center; gap: 20px; font-family: var(--mono); font-size: 11px; color: var(--slate); letter-spacing: 0.08em; }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--gold) 0%, var(--crimson) 100%); display: inline-flex; align-items: center; justify-content: center; font-family: var(--display); color: white; font-weight: 600; font-size: 12px; }
+
+/* HOME */
+.home-body { flex: 1; display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; padding: 40px; overflow: auto; }
+.hero { background: var(--jeopardy); color: var(--cream); border-radius: 8px; padding: 36px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; min-height: 360px; }
+.hero::after { content: '$'; position: absolute; right: -40px; bottom: -90px; font-family: var(--display); font-size: 320px; font-weight: 700; color: rgba(244,199,92,0.14); line-height: 1; pointer-events: none; }
+.hero-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; margin-bottom: 12px; }
+.hero-title { font-family: var(--display); font-weight: 300; font-size: 48px; line-height: 1; letter-spacing: -0.02em; position: relative; z-index: 1; }
+.hero-title em { color: var(--gold); font-style: italic; }
+.btn-gold { align-self: flex-start; background: var(--gold); color: var(--ink); padding: 12px 22px; border-radius: 4px; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; position: relative; z-index: 1; transition: transform 0.15s; }
+.btn-gold:hover:not(:disabled) { transform: translateY(-1px); }
+.btn-gold:disabled { opacity: 0.6; cursor: not-allowed; }
+.home-side { display: flex; flex-direction: column; gap: 16px; }
+.side-card { background: white; border: 1px solid var(--line); border-radius: 6px; padding: 20px; }
+.side-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; color: var(--slate); text-transform: uppercase; margin-bottom: 10px; }
+.side-code { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--jeopardy); letter-spacing: 0.12em; }
+.side-meta { font-size: 11px; color: var(--slate); margin-top: 6px; }
+
+/* GAME */
+.game-screen { background: var(--ink); color: var(--cream); height: 100%; display: flex; flex-direction: column; }
+.game-topbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background: var(--ink2); border-bottom: 1px solid rgba(255,255,255,0.06); font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; flex-shrink: 0; }
+.score-pill { background: var(--gold); color: var(--ink); padding: 4px 14px; border-radius: 14px; font-weight: 700; letter-spacing: 0.05em; }
+.btn-quit { background: transparent; border: 1px solid var(--slate); color: var(--slate2); padding: 4px 12px; border-radius: 3px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; }
+.btn-quit:hover { color: var(--cream); border-color: var(--cream); }
+.board { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: auto repeat(5, 1fr); gap: 4px; padding: 12px; min-height: 0; }
+.cat-header { background: var(--jeopardy-deep); color: var(--cream); display: flex; align-items: center; justify-content: center; text-align: center; padding: 14px 6px; font-family: var(--display); font-weight: 600; font-size: 14px; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 2px; }
+.tile { background: var(--jeopardy); color: var(--gold); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 700; font-size: 32px; text-shadow: 1px 1px 0 rgba(0,0,0,0.3); border-radius: 2px; position: relative; transition: background 0.15s; }
+.tile:hover:not(.visited) { background: #0a15f0; }
+.tile.visited { background: var(--ink2); color: rgba(244,199,92,0.3); font-family: var(--sans); font-size: 20px; text-shadow: none; cursor: default; font-weight: 400; }
+.tile.howard::before { content: ''; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: var(--crimson); border-radius: 50%; }
+.tile.visited.howard::before { display: none; }
+
+/* MODAL */
+.modal-overlay { position: absolute; inset: 0; background: rgba(10,17,40,0.85); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 10; }
+.modal { width: 100%; max-width: 560px; background: var(--jeopardy); color: var(--cream); padding: 36px 40px; border-radius: 8px; box-shadow: 0 0 0 1px var(--gold), 0 40px 80px rgba(0,0,0,0.5); }
+.modal-meta { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 20px; }
+.modal-value { font-family: var(--display); font-weight: 700; font-size: 32px; color: var(--gold); }
+.modal-value.struck { text-decoration: line-through; opacity: 0.5; }
+.modal-clue { font-family: var(--display); font-weight: 400; font-size: 22px; line-height: 1.35; margin-bottom: 20px; }
+.hint-banner { background: var(--gold); color: var(--ink); padding: 10px 16px; border-radius: 4px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+.hint-banner em { font-family: var(--display); font-style: italic; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.hint-text { background: rgba(244,199,92,0.12); border-left: 3px solid var(--gold); padding: 12px 16px; font-size: 14px; line-height: 1.5; font-style: italic; margin-bottom: 20px; color: var(--cream); }
+.modal-input { width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(244,199,92,0.4); padding: 14px 16px; border-radius: 4px; color: var(--cream); font-family: var(--mono); font-size: 14px; outline: none; transition: border-color 0.15s; }
+.modal-input:focus { border-color: var(--gold); }
+.modal-input::placeholder { color: rgba(245,239,225,0.4); }
+.modal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+.btn-hint { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--gold); text-transform: uppercase; padding: 10px 14px; border: 1px solid var(--gold); border-radius: 3px; background: transparent; }
+.btn-hint:disabled { opacity: 0.4; cursor: default; color: var(--slate2); border-color: var(--slate2); }
+.modal-actions-right { display: flex; gap: 8px; }
+.btn-close { background: transparent; border: 1px solid var(--slate); color: var(--slate2); padding: 10px 16px; border-radius: 3px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; }
+.btn-submit { background: var(--gold); color: var(--ink); padding: 10px 22px; border-radius: 3px; font-weight: 700; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+.btn-submit:disabled { background: var(--slate); cursor: not-allowed; }
+.validating { background: var(--ink2); color: var(--cream); border: 1px solid var(--gold); padding: 40px; border-radius: 8px; text-align: center; width: 100%; max-width: 440px; }
+.validating-chip { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; }
+.validating-chip-dot { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.validating-text { font-family: var(--display); font-size: 20px; font-style: italic; font-weight: 300; }
+.feedback { width: 100%; max-width: 520px; padding: 36px 40px; border-radius: 8px; text-align: center; cursor: pointer; box-shadow: 0 30px 80px rgba(0,0,0,0.4); }
+.feedback.correct { background: var(--emerald); color: white; }
+.feedback.wrong { background: var(--ink); color: var(--cream); border: 1px solid var(--crimson); }
+.feedback-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 12px; background: rgba(255,255,255,0.15); font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px; }
+.feedback-mark { font-family: var(--display); font-size: 72px; font-weight: 300; line-height: 1; margin-bottom: 8px; }
+.feedback.wrong .feedback-mark { color: var(--crimson); }
+.feedback-verdict { font-family: var(--display); font-size: 26px; font-weight: 500; margin-bottom: 6px; letter-spacing: -0.01em; }
+.feedback-detail { font-size: 13px; opacity: 0.85; margin-bottom: 20px; line-height: 1.5; }
+.answer-row { background: rgba(0,0,0,0.2); padding: 10px 16px; border-radius: 4px; font-family: var(--mono); font-size: 13px; text-align: left; margin-bottom: 8px; }
+.answer-label { font-size: 9px; letter-spacing: 0.15em; opacity: 0.7; text-transform: uppercase; margin-bottom: 2px; }
+.feedback-tap-hint { margin-top: 20px; font-size: 10px; opacity: 0.6; letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* COMPLETE */
+.complete { background: var(--ink); color: var(--cream); height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; text-align: center; position: relative; overflow: hidden; }
+.complete::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 20% 30%, rgba(244,199,92,0.15), transparent 40%), radial-gradient(circle at 80% 70%, rgba(200,16,46,0.1), transparent 40%); }
+.complete-inner { position: relative; z-index: 1; max-width: 600px; }
+.complete-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.25em; color: var(--gold); text-transform: uppercase; margin-bottom: 20px; }
+.complete-score { font-family: var(--display); font-weight: 300; font-size: 120px; color: var(--gold); line-height: 0.9; letter-spacing: -0.03em; margin-bottom: 8px; }
+.complete-score em { font-style: italic; font-weight: 400; }
+.complete-verdict { font-family: var(--display); font-size: 22px; font-style: italic; font-weight: 300; margin-bottom: 36px; }
+.complete-stats { display: flex; gap: 40px; justify-content: center; margin-bottom: 32px; }
+.stat-value { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--cream); }
+.stat-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--slate2); margin-top: 4px; }
+.complete-actions { display: flex; gap: 12px; justify-content: center; }
+.btn-ghost { padding: 12px 24px; border: 1px solid var(--gold); color: var(--gold); border-radius: 3px; background: transparent; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; }
+
+/* LEADERBOARD */
+.leader-body { flex: 1; padding: 32px 40px; overflow: auto; }
+.leader-title-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.leader-title { font-family: var(--display); font-weight: 400; font-size: 32px; letter-spacing: -0.01em; }
+.leader-title em { font-style: italic; color: var(--jeopardy); }
+.leader-code { font-family: var(--mono); font-size: 12px; color: var(--slate); letter-spacing: 0.1em; }
+.leader-row { display: grid; grid-template-columns: 50px 1fr 100px 120px; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.leader-row.head { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; color: var(--slate); text-transform: uppercase; border-bottom: 1px solid var(--line-strong); }
+.leader-row.me { background: rgba(244,199,92,0.12); border-left: 3px solid var(--gold); padding-left: 12px; margin-left: -15px; }
+.leader-rank { font-family: var(--display); font-style: italic; font-weight: 600; font-size: 18px; color: var(--gold-deep); }
+.leader-rank.top { color: var(--crimson); }
+.leader-name { font-weight: 500; }
+.leader-score { font-family: var(--mono); font-weight: 700; color: var(--jeopardy); text-align: right; }
+.leader-time { font-family: var(--mono); font-size: 11px; color: var(--slate); text-align: right; }
+.leader-actions { display: flex; gap: 12px; justify-content: center; margin-top: 32px; }
+.btn-dark { padding: 12px 24px; background: var(--ink); color: var(--cream); border-radius: 3px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; }
+
+@media (max-width: 800px) {
+  .login { flex-direction: column; }
+  .login-left { padding: 32px; min-height: 200px; }
+  .login-right { padding: 32px; max-width: none; }
+  .home-body { grid-template-columns: 1fr; padding: 24px; }
+  .hero { padding: 24px; min-height: 240px; }
+  .hero-title { font-size: 36px; }
+  .cat-header { font-size: 10px; padding: 8px 4px; }
+  .tile { font-size: 18px; }
+  .modal { padding: 24px; }
+  .modal-clue { font-size: 17px; }
+  .complete-score { font-size: 72px; }
+  .game-topbar { padding: 10px 14px; font-size: 10px; gap: 8px; flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+
+<div id="root">
+  <div class="boot"><div class="boot-spinner"></div><div>Loading Grid Quiz…</div></div>
+</div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// Empty string = same domain (production on Vercel); localhost = local Django dev server
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://127.0.0.1:8000'
+  : '';
+
+const CATEGORY_DISPLAY = { movies: 'Movies', tv: 'TV', music: 'Music', celebrities: 'Celebrities', sports: 'Sports' };
+const VALUES = [200, 400, 600, 800, 1000];
+const NUMERALS = ['i.', 'ii.', 'iii.', 'iv.', 'v.', 'vi.', 'vii.', 'viii.', 'ix.', 'x.'];
+
+const fmtTime = (s) => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+const fmtMoney = (n) => n.toLocaleString();
+
+// ── API helpers ─────────────────────────────────────────────────────────────
+
+async function apiFetchBoard() {
+  const res = await fetch(`${API_BASE}/api/game/`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  const byCategory = {};
+  for (const q of data.questions) {
+    const display = CATEGORY_DISPLAY[q.category] || q.category;
+    if (!byCategory[display]) byCategory[display] = [];
+    byCategory[display].push(q);
+  }
+  for (const cat of Object.keys(byCategory)) byCategory[cat].sort((a, b) => a.value - b.value);
+  return { boardCode: data.board_code, questions: byCategory, categories: Object.keys(byCategory) };
+}
+
+async function apiValidate(questionId, userAnswer) {
+  const res = await fetch(`${API_BASE}/api/validate/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question_id: questionId, user_answer: userAnswer }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function apiPostScore(boardCode, { username, score, elapsed, correctCount, hintsUsed }) {
+  await fetch(`${API_BASE}/api/games/${boardCode}/leaderboard/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, score, time_seconds: elapsed, correct_count: correctCount, hints_used: hintsUsed }),
+  });
+}
+
+async function apiFetchLeaderboard(boardCode) {
+  const res = await fetch(`${API_BASE}/api/games/${boardCode}/leaderboard/`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return (data.entries || [])
+    .map((e) => ({ name: e.user?.username || 'anonymous', score: e.score, time: fmtTime(e.time_seconds || 0) }))
+    .sort((a, b) => b.score - a.score);
+}
+
+// ── Shared components ──────────────────────────────────────────────────────
+
+const BrandMark = () => <div className="brand-mark"><div/><div/><div/><div/></div>;
+const TopBar = ({ children }) => (
+  <div className="topbar">
+    <div className="brand"><BrandMark /> Grid Quiz</div>
+    <div className="topbar-right">{children}</div>
+  </div>
+);
+const Avatar = ({ initial = 'J' }) => <span className="avatar">{initial}</span>;
+
+// ── Login ──────────────────────────────────────────────────────────────────
+
+const LoginScreen = ({ onLogin }) => {
+  const [username, setUsername] = useState('');
+  const submit = () => onLogin(username.trim() || 'player');
+  return (
+    <div className="screen login">
+      <div className="login-left">
+        <div className="login-brand">Grid Quiz</div>
+        <div>
+          <div className="login-headline">Think fast.<br/>Answer <em>smart.</em></div>
+          <div className="login-subhead">Jeopardy-style trivia with a smart grader that knows "Gatsby" and "The Great Gatsby" are the same thing.</div>
+        </div>
+        <div className="login-footer">· Howard Edition ·</div>
+      </div>
+      <div className="login-right">
+        <div className="login-title">Welcome</div>
+        <div className="login-sub">Enter a username to track your score on the leaderboard.</div>
+        <input
+          type="text" className="code-input" placeholder="Username"
+          value={username} onChange={(e) => setUsername(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+          style={{ marginBottom: 12 }}
+        />
+        <button className="gbutton" onClick={submit}>
+          <span className="glogo"></span>Continue
+        </button>
+        <div className="legal">By continuing, you agree to our <a href="#">Terms</a> &amp; <a href="#">Privacy</a>.</div>
+      </div>
+    </div>
+  );
+};
+
+// ── Home ───────────────────────────────────────────────────────────────────
+
+const HomeScreen = ({ onStart, lastBoardCode, lastScore, loading, username }) => (
+  <div className="screen">
+    <TopBar>
+      <span>RECORD · {lastScore ? '$' + fmtMoney(lastScore) : '—'}</span>
+      <Avatar initial={username ? username[0].toUpperCase() : 'J'} />
+    </TopBar>
+    <div className="home-body">
+      <div className="hero">
+        <div>
+          <div className="hero-label">{loading ? 'Generating board…' : 'Ready when you are'}</div>
+          <div className="hero-title">A fresh <em>board,</em><br/>in one tap.</div>
+        </div>
+        <button className="btn-gold" onClick={onStart} disabled={loading}>
+          {loading ? 'Loading…' : 'Start New Game'}
+        </button>
+      </div>
+      <div className="home-side">
+        <div className="side-card">
+          <div className="side-label">Your last board</div>
+          <div className="side-code">{lastBoardCode ? `#${lastBoardCode}` : 'None yet'}</div>
+          <div className="side-meta">{lastBoardCode ? 'Fetched from server' : 'Start a game to generate one'}</div>
+        </div>
+        <div className="side-card">
+          <div className="side-label">Signed in as</div>
+          <div className="side-code" style={{ fontSize: 16 }}>{username}</div>
+          <div className="side-meta">Scores saved to leaderboard</div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// ── Game ───────────────────────────────────────────────────────────────────
+
+const GameScreen = ({ boardCode, questions, categories, username, onComplete, onQuit }) => {
+  const [score, setScore] = useState(0);
+  const [visited, setVisited] = useState({});
+  const [selectedKey, setSelectedKey] = useState(null);
+  const [isHintActive, setIsHintActive] = useState(false);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [modalState, setModalState] = useState('closed');
+  const [feedback, setFeedback] = useState(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [hintsUsed, setHintsUsed] = useState(0);
+  const startTime = useRef(Date.now());
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - startTime.current) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (modalState === 'question' && inputRef.current) setTimeout(() => inputRef.current?.focus(), 50);
+  }, [modalState]);
+
+  const visitedCount = Object.keys(visited).length;
+  const totalTiles = categories.length * VALUES.length;
+
+  useEffect(() => {
+    if (visitedCount === totalTiles) {
+      setTimeout(() => onComplete({ score, elapsed, correctCount, hintsUsed, boardCode, username, totalTiles }), 500);
+    }
+  }, [visitedCount]);
+
+  const [cat, idxStr] = selectedKey ? selectedKey.split('-') : [null, null];
+  const question = cat && idxStr != null ? (questions[cat] || [])[parseInt(idxStr)] : null;
+
+  const handleTileClick = (c, idx) => {
+    const key = `${c}-${idx}`;
+    if (visited[key]) return;
+    setSelectedKey(key); setUserAnswer(''); setIsHintActive(false); setModalState('question');
+  };
+
+  const handleSubmit = async () => {
+    if (!userAnswer.trim() || !question) return;
+    setModalState('validating');
+    let result;
+    try {
+      result = await apiValidate(question.id, userAnswer);
+    } catch {
+      result = { correct: false, reason: 'Could not reach server — check backend is running' };
+    }
+    const payout = isHintActive ? question.value / 2 : question.value;
+    const delta = result.correct ? payout : 0;
+    if (result.correct) setCorrectCount((c) => c + 1);
+    setScore((s) => s + delta);
+    setFeedback({ correct: result.correct, reason: result.reason, userAnswer, delta });
+    setModalState('feedback');
+  };
+
+  const handleHint = () => { if (isHintActive) return; setIsHintActive(true); setHintsUsed((h) => h + 1); };
+
+  const closeQuestion = () => { setModalState('closed'); setSelectedKey(null); setIsHintActive(false); setUserAnswer(''); };
+
+  const closeFeedback = () => {
+    if (!selectedKey) return;
+    setVisited((v) => ({ ...v, [selectedKey]: true }));
+    setModalState('closed'); setSelectedKey(null); setFeedback(null); setIsHintActive(false); setUserAnswer('');
+  };
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (modalState === 'question' && e.key === 'Escape') closeQuestion();
+      if (modalState === 'feedback' && (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); closeFeedback(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [modalState, selectedKey]);
+
+  return (
+    <div className="screen game-screen">
+      <div className="game-topbar">
+        <span>BOARD · #{boardCode}</span>
+        <span>TILES · {visitedCount} / {totalTiles}</span>
+        <span className="score-pill">$ {fmtMoney(score)}</span>
+        <span>{fmtTime(elapsed)}</span>
+        <button className="btn-quit" onClick={onQuit}>QUIT</button>
+      </div>
+      <div className="board">
+        {categories.map((c) => <div key={c} className="cat-header">{c}</div>)}
+        {VALUES.map((_, rowIdx) =>
+          categories.map((c) => {
+            const q = (questions[c] || [])[rowIdx];
+            if (!q) return <div key={`${c}-${rowIdx}`} className="tile visited" />;
+            const key = `${c}-${rowIdx}`;
+            const isVisited = !!visited[key];
+            return (
+              <button key={key} className={['tile', isVisited && 'visited', q.howard && 'howard'].filter(Boolean).join(' ')}
+                onClick={() => handleTileClick(c, rowIdx)} disabled={isVisited}>
+                {isVisited ? '✓' : `$${q.value}`}
+              </button>
+            );
+          })
+        )}
+      </div>
+
+      {modalState !== 'closed' && question && (
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget && modalState === 'question') closeQuestion(); }}>
+          {modalState === 'question' && (
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              {isHintActive && <div className="hint-banner"><span>Hint Active</span><em>Reward reduced to ${question.value / 2}</em></div>}
+              <div className="modal-meta">
+                <span>{cat} · {question.howard ? '★ ' : ''}{question.value}pt tile</span>
+                <span className={'modal-value' + (isHintActive ? ' struck' : '')}>${question.value}</span>
+              </div>
+              <div className="modal-clue">{question.question_text}</div>
+              {isHintActive && question.hint && <div className="hint-text">{question.hint}</div>}
+              <input ref={inputRef} type="text" className="modal-input" placeholder="What is / Who is..."
+                value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }} autoComplete="off" />
+              <div className="modal-actions">
+                <button className="btn-hint" onClick={handleHint} disabled={isHintActive || !question.hint}>
+                  {isHintActive ? 'Hint Used' : 'Use Hint · −50%'}
+                </button>
+                <div className="modal-actions-right">
+                  <button className="btn-close" onClick={closeQuestion}>Close</button>
+                  <button className="btn-submit" onClick={handleSubmit} disabled={!userAnswer.trim()}>Submit</button>
+                </div>
+              </div>
+            </div>
+          )}
+          {modalState === 'validating' && (
+            <div className="validating">
+              <div className="validating-chip"><span className="validating-chip-dot"></span>Grading your answer</div>
+              <div className="validating-text">Checking semantic match...</div>
+            </div>
+          )}
+          {modalState === 'feedback' && feedback && (
+            <div className={'feedback ' + (feedback.correct ? 'correct' : 'wrong')} onClick={closeFeedback}>
+              <div className="feedback-chip">Smart match</div>
+              <div className="feedback-mark">{feedback.correct ? '✓' : '✗'}</div>
+              <div className="feedback-verdict">{feedback.correct ? 'Correct' : 'Not quite'}</div>
+              <div className="feedback-detail">
+                {feedback.correct ? `+ $${fmtMoney(feedback.delta)} · ${feedback.reason}` : feedback.reason}
+              </div>
+              <div className="answer-row"><div className="answer-label">Your answer</div>{feedback.userAnswer}</div>
+              <div className="feedback-tap-hint">Tap to continue</div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Complete ───────────────────────────────────────────────────────────────
+
+const CompleteScreen = ({ result, onPlayAgain, onViewLeaderboard }) => {
+  const verdict = result.score > 8000 ? 'a personal best.' : result.score > 5000 ? 'well played.' : 'keep practicing.';
+  return (
+    <div className="screen complete">
+      <div className="complete-inner">
+        <div className="complete-label">Board Complete</div>
+        <div className="complete-score">$ <em>{fmtMoney(result.score)}</em></div>
+        <div className="complete-verdict">— {verdict}</div>
+        <div className="complete-stats">
+          <div><div className="stat-value">{result.correctCount}/{result.totalTiles || 25}</div><div className="stat-label">Correct</div></div>
+          <div><div className="stat-value">{fmtTime(result.elapsed)}</div><div className="stat-label">Time</div></div>
+          <div><div className="stat-value">{result.hintsUsed}</div><div className="stat-label">Hints</div></div>
+        </div>
+        <div className="complete-actions">
+          <button className="btn-ghost" onClick={onPlayAgain}>Play Again</button>
+          <button className="btn-gold" onClick={onViewLeaderboard}>Leaderboard</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Leaderboard ────────────────────────────────────────────────────────────
+
+const LeaderboardScreen = ({ result, boardCode, username, onHome }) => {
+  const [entries, setEntries] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiFetchLeaderboard(boardCode)
+      .then((data) => setEntries(data.map((e) => ({ ...e, isMe: e.name === username }))))
+      .catch(() => setEntries(result ? [{ name: username, score: result.score, time: fmtTime(result.elapsed), isMe: true }] : []))
+      .finally(() => setLoading(false));
+  }, [boardCode]);
+
+  const rows = entries || [];
+  return (
+    <div className="screen">
+      <TopBar><span>BOARD · #{boardCode}</span><Avatar initial={username ? username[0].toUpperCase() : 'J'} /></TopBar>
+      <div className="leader-body">
+        <div className="leader-title-row">
+          <div className="leader-title">Top <em>Scores</em></div>
+          <div className="leader-code">{loading ? 'Loading…' : `${rows.length} players · board #${boardCode}`}</div>
+        </div>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><div className="boot-spinner" /></div>
+        ) : (
+          <>
+            <div className="leader-row head">
+              <span>#</span><span>Player</span>
+              <span style={{ textAlign: 'right' }}>Score</span>
+              <span style={{ textAlign: 'right' }}>Time</span>
+            </div>
+            {rows.map((p, i) => (
+              <div key={i} className={'leader-row' + (p.isMe ? ' me' : '')}>
+                <span className={'leader-rank' + (i === 0 ? ' top' : '')}>{NUMERALS[i] || `${i + 1}.`}</span>
+                <span className="leader-name">{p.name}{p.isMe ? ' · you' : ''}</span>
+                <span className="leader-score">${fmtMoney(p.score)}</span>
+                <span className="leader-time">{p.time}</span>
+              </div>
+            ))}
+          </>
+        )}
+        <div className="leader-actions"><button className="btn-dark" onClick={onHome}>Back to Home</button></div>
+      </div>
+    </div>
+  );
+};
+
+// ── App ────────────────────────────────────────────────────────────────────
+
+const App = () => {
+  const [screen, setScreen] = useState('login');
+  const [username, setUsername] = useState('player');
+  const [boardData, setBoardData] = useState(null);
+  const [loadingBoard, setLoadingBoard] = useState(false);
+  const [lastResult, setLastResult] = useState(null);
+
+  const startGame = useCallback(async () => {
+    setLoadingBoard(true);
+    try {
+      const data = await apiFetchBoard();
+      setBoardData(data);
+      setScreen('game');
+    } catch {
+      alert(`Could not reach the server at ${API_BASE}.\nMake sure the Django backend is running.`);
+    } finally {
+      setLoadingBoard(false);
+    }
+  }, []);
+
+  const handleComplete = useCallback(async (result) => {
+    setLastResult(result);
+    setScreen('complete');
+    try { await apiPostScore(result.boardCode, result); } catch {}
+  }, []);
+
+  if (screen === 'login') return <LoginScreen onLogin={(name) => { setUsername(name); setScreen('home'); }} />;
+  if (screen === 'home') return <HomeScreen onStart={startGame} lastBoardCode={boardData?.boardCode} lastScore={lastResult?.score} loading={loadingBoard} username={username} />;
+  if (screen === 'game' && boardData) return <GameScreen boardCode={boardData.boardCode} questions={boardData.questions} categories={boardData.categories} username={username} onComplete={handleComplete} onQuit={() => setScreen('home')} />;
+  if (screen === 'complete' && lastResult) return <CompleteScreen result={lastResult} onPlayAgain={startGame} onViewLeaderboard={() => setScreen('leaderboard')} />;
+  if (screen === 'leaderboard') return <LeaderboardScreen result={lastResult} boardCode={boardData?.boardCode} username={username} onHome={() => setScreen('home')} />;
+  return null;
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
