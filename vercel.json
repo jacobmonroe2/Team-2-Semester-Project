@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "buildCommand": "pip install -r backend/requirements.txt && cd backend && python manage.py migrate --noinput && python manage.py loaddata questions",
   "builds": [
     {
       "src": "backend/gridquiz/wsgi.py",
