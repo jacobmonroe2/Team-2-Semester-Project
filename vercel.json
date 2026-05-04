@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/gridquiz/wsgi.py",
+      "use": "@vercel/python",
+      "config": { "maxLambdaSize": "15mb" }
+    },
+    {
+      "src": "jeopardy2.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "backend/gridquiz/wsgi.py" },
+    { "src": "/admin/(.*)", "dest": "backend/gridquiz/wsgi.py" },
+    { "src": "/", "dest": "jeopardy2.html" }
+  ]
+}
